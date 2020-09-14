@@ -1,4 +1,3 @@
-use super::multipart::Form;
 /// dox
 use bytes::Bytes;
 use std::fmt;
@@ -18,7 +17,6 @@ pub struct Body {
 
 enum Inner {
     Bytes(Bytes),
-    Multipart(Form),
 }
 
 impl Body {
@@ -30,25 +28,12 @@ impl Body {
                 let js_value: &JsValue = body_array.as_ref();
                 Ok(js_value.to_owned())
             }
-            Inner::Multipart(form) => {
-                let form_data = form.to_form_data()?;
-                let js_value: &JsValue = form_data.as_ref();
-                Ok(js_value.to_owned())
-            }
-        }
-    }
-
-    #[inline]
-    pub(crate) fn from_form(f: Form) -> Body {
-        Self {
-            inner: Inner::Multipart(f),
         }
     }
 
     pub(crate) fn is_empty(&self) -> bool {
         match &self.inner {
             Inner::Bytes(bytes) => bytes.is_empty(),
-            Inner::Multipart(form) => form.is_empty(),
         }
     }
 }

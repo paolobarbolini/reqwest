@@ -140,7 +140,6 @@ features = [
     "RequestMode",
     "Response",
     "Window",
-    "FormData",
     "Blob",
     "BlobPropertyBag",
 ]

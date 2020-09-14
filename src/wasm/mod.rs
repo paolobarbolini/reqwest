@@ -4,8 +4,6 @@ mod body;
 mod client;
 mod request;
 mod response;
-/// TODO
-pub mod multipart;
 
 pub use self::body::Body;
 pub use self::client::{Client, ClientBuilder};
