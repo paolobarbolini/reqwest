@@ -3,7 +3,7 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::io;
 
-use crate::{StatusCode, Url};
+use crate::{StatusCode};
 
 /// A `Result` alias where the `Err` case is `reqwest::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -18,7 +18,7 @@ pub(crate) type BoxError = Box<dyn StdError + Send + Sync>;
 struct Inner {
     kind: Kind,
     source: Option<BoxError>,
-    url: Option<Url>,
+    url: Option<String>,
 }
 
 impl Error {
@@ -52,7 +52,7 @@ impl Error {
     /// }
     /// # }
     /// ```
-    pub fn url(&self) -> Option<&Url> {
+    pub fn url(&self) -> Option<&String> {
         self.inner.url.as_ref()
     }
 
@@ -146,7 +146,7 @@ impl Error {
 
     // private
 
-    pub(crate) fn with_url(mut self, url: Url) -> Error {
+    pub(crate) fn with_url(mut self, url: String) -> Error {
         self.inner.url = Some(url);
         self
     }
@@ -176,12 +176,12 @@ impl fmt::Debug for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        struct ForUrl<'a>(Option<&'a Url>);
+        struct ForUrl<'a>(Option<&'a String>);
 
         impl fmt::Display for ForUrl<'_> {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 if let Some(url) = self.0 {
-                    write!(f, " for url ({})", url.as_str())
+                    write!(f, " for url ({})", url)
                 } else {
                     Ok(())
                 }
@@ -263,15 +263,15 @@ pub(crate) fn request<E: Into<BoxError>>(e: E) -> Error {
     Error::new(Kind::Request, Some(e))
 }
 
-pub(crate) fn redirect<E: Into<BoxError>>(e: E, url: Url) -> Error {
+pub(crate) fn redirect<E: Into<BoxError>>(e: E, url: String) -> Error {
     Error::new(Kind::Redirect, Some(e)).with_url(url)
 }
 
-pub(crate) fn status_code(url: Url, status: StatusCode) -> Error {
+pub(crate) fn status_code(url: String, status: StatusCode) -> Error {
     Error::new(Kind::Status(status), None::<Error>).with_url(url)
 }
 
-pub(crate) fn url_bad_scheme(url: Url) -> Error {
+pub(crate) fn url_bad_scheme(url: String) -> Error {
     Error::new(Kind::Builder, Some("URL scheme is not allowed")).with_url(url)
 }
 

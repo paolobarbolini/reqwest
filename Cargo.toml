@@ -63,7 +63,6 @@ __internal_proxy_sys_no_cache = []
 
 [dependencies]
 http = "0.2"
-url = "2.1"
 bytes = "0.5"
 serde = "1.0"
 ## json
