@@ -1,8 +1,7 @@
 use std::convert::TryFrom;
 use std::fmt;
 
-use http::{request::Parts, Method, Request as HttpRequest};
-use url::Url;
+use http::Method;
 #[cfg(feature = "json")]
 use serde_json;
 use serde::Serialize;
@@ -14,7 +13,7 @@ use crate::header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE};
 /// A request which can be executed with `Client::execute()`.
 pub struct Request {
     method: Method,
-    url: Url,
+    url: String,
     headers: HeaderMap,
     body: Option<Body>,
     pub(super) cors: bool,
@@ -27,7 +26,7 @@ pub struct RequestBuilder {
 }
 
 impl Request {
-    pub(super) fn new(method: Method, url: Url) -> Self {
+    pub(super) fn new(method: Method, url: String) -> Self {
         Request {
             method,
             url,
@@ -51,13 +50,13 @@ impl Request {
 
     /// Get the url.
     #[inline]
-    pub fn url(&self) -> &Url {
+    pub fn url(&self) -> &String {
         &self.url
     }
 
     /// Get a mutable reference to the url.
     #[inline]
-    pub fn url_mut(&mut self) -> &mut Url {
+    pub fn url_mut(&mut self) -> &mut String {
         &mut self.url
     }
 
@@ -110,25 +109,7 @@ impl RequestBuilder {
     /// This method will fail if the object you provide cannot be serialized
     /// into a query string.
     pub fn query<T: Serialize + ?Sized>(mut self, query: &T) -> RequestBuilder {
-        let mut error = None;
-        if let Ok(ref mut req) = self.request {
-            let url = req.url_mut();
-            let mut pairs = url.query_pairs_mut();
-            let serializer = serde_urlencoded::Serializer::new(&mut pairs);
-
-            if let Err(err) = query.serialize(serializer) {
-                error = Some(crate::error::builder(err));
-            }
-        }
-        if let Ok(ref mut req) = self.request {
-            if let Some("") = req.url().query() {
-                req.url_mut().set_query(None);
-            }
-        }
-        if let Some(err) = error {
-            self.request = Err(err);
-        }
-        self
+        unreachable!();
     }
 
     /// Send a form body.
@@ -306,29 +287,4 @@ fn fmt_request_fields<'a, 'b>(
     f.field("method", &req.method)
         .field("url", &req.url)
         .field("headers", &req.headers)
-}
-
-impl<T> TryFrom<HttpRequest<T>> for Request
-where
-    T: Into<Body>,
-{
-    type Error = crate::Error;
-
-    fn try_from(req: HttpRequest<T>) -> crate::Result<Self> {
-        let (parts, body) = req.into_parts();
-        let Parts {
-            method,
-            uri,
-            headers,
-            ..
-        } = parts;
-        let url = Url::parse(&uri.to_string()).map_err(crate::error::builder)?;
-        Ok(Request {
-            method,
-            url,
-            headers,
-            body: Some(body.into()),
-            cors: true,
-        })
-    }
 }

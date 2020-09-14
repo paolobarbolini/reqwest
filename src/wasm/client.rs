@@ -226,7 +226,7 @@ async fn fetch(req: Request) -> crate::Result<Response> {
     // Convert from the js Response
     let mut resp = http::Response::builder().status(js_resp.status());
 
-    let url = Url::parse(&js_resp.url()).expect_throw("url parse");
+    let url = js_resp.url();
 
     let js_headers = js_resp.headers();
     let js_iter = js_sys::try_iter(&js_headers)

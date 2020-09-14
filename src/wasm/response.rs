@@ -3,7 +3,6 @@ use std::fmt;
 use bytes::Bytes;
 use js_sys::Uint8Array;
 use http::{HeaderMap, StatusCode};
-use url::Url;
 
 #[cfg(feature = "json")]
 use serde::de::DeserializeOwned;
@@ -13,13 +12,13 @@ pub struct Response {
     http: http::Response<web_sys::Response>,
     // Boxed to save space (11 words to 1 word), and it's not accessed
     // frequently internally.
-    url: Box<Url>,
+    url: Box<String>,
 }
 
 impl Response {
     pub(super) fn new(
         res: http::Response<web_sys::Response>,
-        url: Url,
+        url: String,
     ) -> Response {
         Response {
             http: res,
@@ -63,7 +62,7 @@ impl Response {
 
     /// Get the final `Url` of this `Response`.
     #[inline]
-    pub fn url(&self) -> &Url {
+    pub fn url(&self) -> &String {
         &self.url
     }
 
