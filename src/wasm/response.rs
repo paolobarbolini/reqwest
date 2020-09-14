@@ -45,22 +45,6 @@ impl Response {
         self.http.headers_mut()
     }
 
-    /// Get the content-length of this response, if known.
-    ///
-    /// Reasons it may not be known:
-    ///
-    /// - The server didn't send a `content-length` header.
-    /// - The response is compressed and automatically decoded (thus changing
-    //   the actual decoded length).
-    pub fn content_length(&self) -> Option<u64> {
-        self.headers()
-            .get(http::header::CONTENT_LENGTH)?
-            .to_str()
-            .ok()?
-            .parse()
-            .ok()
-    }
-
     /// Get the final `Url` of this `Response`.
     #[inline]
     pub fn url(&self) -> &Url {
@@ -81,21 +65,6 @@ impl Response {
         let full = self.bytes().await?;
 
         serde_json::from_slice(&full).map_err(crate::error::decode)
-    }
-
-    /// Get the response text.
-    pub async fn text(self) -> crate::Result<String> {
-        let p = self.http.body().text()
-            .map_err(crate::error::wasm)
-            .map_err(crate::error::decode)?;
-        let js_val = super::promise::<wasm_bindgen::JsValue>(p)
-            .await
-            .map_err(crate::error::decode)?;
-        if let Some(s) = js_val.as_string() {
-            Ok(s)
-        } else {
-            Err(crate::error::decode("response.text isn't string"))
-        }
     }
 
     /// Get the response as bytes
@@ -121,16 +90,6 @@ impl Response {
         let status = self.status();
         if status.is_client_error() || status.is_server_error() {
             Err(crate::error::status_code(*self.url, status))
-        } else {
-            Ok(self)
-        }
-    }
-
-    /// Turn a reference to a response into an error if the server returned an error.
-    pub fn error_for_status_ref(&self) -> crate::Result<&Self> {
-        let status = self.status();
-        if status.is_client_error() || status.is_server_error() {
-            Err(crate::error::status_code(*self.url.clone(), status))
         } else {
             Ok(self)
         }
