@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use std::fmt;
 
 use http::HeaderMap;
-use mime_guess::Mime;
+use mime::Mime;
 use web_sys::FormData;
 
 use super::Body;

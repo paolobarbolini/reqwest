@@ -5,7 +5,7 @@ use std::pin::Pin;
 
 use bytes::{Bytes};
 use http::HeaderMap;
-use mime_guess::Mime;
+use mime::Mime;
 use percent_encoding::{self, AsciiSet, NON_ALPHANUMERIC};
 
 use futures_core::Stream;
