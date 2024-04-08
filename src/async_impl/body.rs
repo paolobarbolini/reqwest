@@ -5,11 +5,11 @@ use std::task::{Context, Poll};
 
 use bytes::Bytes;
 use http_body::Body as HttpBody;
-use http_body_util::combinators::BoxBody;
-//use sync_wrapper::SyncWrapper;
+use http_body_util::combinators::{ UnsyncBoxBody};
 #[cfg(feature = "stream")]
 use tokio::fs::File;
 use tokio::time::Sleep;
+use sync_wrapper::SyncWrapper;
 #[cfg(feature = "stream")]
 use tokio_util::io::ReaderStream;
 
@@ -20,7 +20,7 @@ pub struct Body {
 
 enum Inner {
     Reusable(Bytes),
-    Streaming(BoxBody<Bytes, Box<dyn std::error::Error + Send + Sync>>),
+    Streaming(SyncWrapper<UnsyncBoxBody<Bytes, Box<dyn std::error::Error + Send>>>),
 }
 
 /// A body with a total timeout.
@@ -73,7 +73,7 @@ impl Body {
     #[cfg_attr(docsrs, doc(cfg(feature = "stream")))]
     pub fn wrap_stream<S>(stream: S) -> Body
     where
-        S: futures_core::stream::TryStream + Send + Sync + 'static,
+        S: futures_core::stream::TryStream + Send + 'static,
         S::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
         Bytes: From<S::Ok>,
     {
@@ -83,7 +83,7 @@ impl Body {
     #[cfg(any(feature = "stream", feature = "multipart", feature = "blocking"))]
     pub(crate) fn stream<S>(stream: S) -> Body
     where
-        S: futures_core::stream::TryStream + Send + Sync + 'static,
+        S: futures_core::stream::TryStream + Send + 'static,
         S::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
         Bytes: From<S::Ok>,
     {
@@ -125,19 +125,19 @@ impl Body {
     // pub?
     pub(crate) fn streaming<B>(inner: B) -> Body
     where
-        B: HttpBody + Send + Sync + 'static,
+        B: HttpBody + Send + 'static,
         B::Data: Into<Bytes>,
-        B::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+        B::Error: Into<Box<dyn std::error::Error + Send>>,
     {
         use http_body_util::BodyExt;
 
         let boxed = inner
             .map_frame(|f| f.map_data(Into::into))
             .map_err(Into::into)
-            .boxed();
+            .boxed_unsync();
 
         Body {
-            inner: Inner::Streaming(boxed),
+            inner: Inner::Streaming(SyncWrapper::new(boxed)),
         }
     }
 
@@ -259,7 +259,7 @@ impl HttpBody for Body {
                 }
             }
             Inner::Streaming(ref mut body) => Poll::Ready(
-                futures_core::ready!(Pin::new(body).poll_frame(cx))
+                futures_core::ready!(Pin::new(body).get_pin_mut().poll_frame(cx))
                     .map(|opt_chunk| opt_chunk.map_err(crate::error::body)),
             ),
         }
